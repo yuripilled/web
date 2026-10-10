@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Desunation Mail</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      background: #c0c0c0;
+      color: #111;
+      font: 14px Tahoma, Arial, sans-serif;
+    }
+
+    .window {
+      max-width: 1000px;
+      min-height: 620px;
+      margin: auto;
+      background: #eee;
+      border: 2px solid white;
+      border-right-color: #555;
+      border-bottom-color: #555;
+      box-shadow: 2px 2px #333;
+    }
+
+    .titlebar {
+      padding: 10px 12px;
+      color: white;
+      background: #000080;
+      font-weight: bold;
+      letter-spacing: .3px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      padding: 10px;
+      border-bottom: 1px solid #999;
+    }
+
+    button, input, textarea {
+      font: inherit;
+    }
+
+    button {
+      padding: 6px 12px;
+      color: #111;
+      background: #ddd;
+      border: 2px solid white;
+      border-right-color: #555;
+      border-bottom-color: #555;
+      cursor: pointer;
+    }
+
+    button:active {
+      border-color: #555;
+      border-right-color: white;
+      border-bottom-color: white;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 190px 1fr;
+      min-height: 550px;
+    }
+
+    aside {
+      padding: 12px;
+      border-right: 1px solid #999;
+      background: #ddd;
+    }
+
+    .folder {
+      display: block;
+      width: 100%;
+      margin: 4px 0;
+      text-align: left;
+      border: 0;
+      background: transparent;
+    }
+
+    .folder.active {
+      color: white;
+      background: #000080;
+    }
+
+    main { padding: 14px; }
+
+    .account {
+      margin-bottom: 18px;
+      padding: 10px;
+      background: #f8f8f8;
+      border: 1px solid #999;
+      overflow-wrap: anywhere;
+    }
+
+    .message {
+      display: grid;
+      grid-template-columns: 180px 1fr 120px;
+      gap: 12px;
+      padding: 12px 8px;
+      border-bottom: 1px solid #aaa;
+      cursor: pointer;
+    }
+
+    .message:hover { background: #dce7ff; }
+    .message.unread { font-weight: bold; }
+    .subject { overflow-wrap: anywhere; }
+    .date { text-align: right; color: #555; }
+
+    .note {
+      margin-top: 20px;
+      color: #444;
+      font-size: 12px;
+    }
+
+    dialog {
+      width: min(560px, calc(100% - 24px));
+      border: 2px solid white;
+      border-right-color: #555;
+      border-bottom-color: #555;
+      background: #eee;
+      box-shadow: 3px 3px #333;
+    }
+
+    dialog::backdrop { background: #0008; }
+
+    .compose-title {
+      margin: -4px -4px 12px;
+      padding: 9px;
+      color: white;
+      background: #000080;
+      font-weight: bold;
+    }
+
+    .field {
+      display: grid;
+      grid-template-columns: 64px 1fr;
+      gap: 8px;
+      align-items: center;
+      margin: 10px 0;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 7px;
+      border: 2px inset #ddd;
+      background: white;
+    }
+
+    textarea {
+      min-height: 180px;
+      resize: vertical;
+    }
+
+    .compose-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 650px) {
+      body { padding: 8px; }
+      .layout { grid-template-columns: 1fr; }
+      aside {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        border-right: 0;
+        border-bottom: 1px solid #999;
+      }
+      .account { width: 100%; }
+      .folder { width: auto; }
+      .message { grid-template-columns: 1fr; gap: 4px; }
+      .date { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+  <div class="window">
+    <header class="titlebar">Desunation Mail</header>
+
+    <div class="toolbar">
+      <button id="composeButton">✉ Compose</button>
+      <button id="refreshButton">↻ Refresh</button>
+    </div>
+
+    <div class="layout">
+      <aside>
+        <div class="account">
+          <strong>Signed in as</strong><br>
+          yuri@desunation.com
+        </div>
+
+        <button class="folder active">📥 Inbox</button>
+        <button class="folder">⭐ Starred</button>
+        <button class="folder">📝 Drafts</button>
+        <button class="folder">📤 Sent</button>
+        <button class="folder">🗑 Trash</button>
+      </aside>
+
+      <main>
+        <h2>Inbox <small id="count"></small></h2>
+        <div id="messages"></div>
+        <p class="note">
+          Demo interface only. Messages here are sample data and are not real email.
+        </p>
+      </main>
+    </div>
+  </div>
+
+  <dialog id="composeDialog">
+    <form id="composeForm">
+      <div class="compose-title">New Message</div>
+
+      <label class="field">
+        <span>To:</span>
+        <input name="to" type="email" placeholder="friend@example.com" required>
+      </label>
+
+      <label class="field">
+        <span>Subject:</span>
+        <input name="subject" placeholder="Subject">
+      </label>
+
+      <label>
+        <textarea name="body" placeholder="Write your message..." required></textarea>
+      </label>
+
+      <div class="compose-actions">
+        <button type="button" id="closeButton">Close</button>
+        <button type="submit">Send</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    const sampleMessages = [
+      { from: "Welcome Desk", subject: "Welcome to Desunation Mail", date: "Today", unread: true },
+      { from: "Alex Rivera", subject: "Hey, testing the new address", date: "Yesterday", unread: true },
+      { from: "System", subject: "Your mailbox is ready", date: "Monday", unread: false }
+    ];
+
+    const messagesEl = document.querySelector("#messages");
+    const countEl = document.querySelector("#count");
+    const dialog = document.querySelector("#composeDialog");
+
+    function renderMessages() {
+      countEl.textContent = `(${sampleMessages.length})`;
+      messagesEl.innerHTML = sampleMessages.map((mail, index) => `
+        <div class="message ${mail.unread ? "unread" : ""}" data-index="${index}">
+          <span>${mail.from}</span>
+          <span class="subject">${mail.subject}</span>
+          <span class="date">${mail.date}</span>
+        </div>
+      `).join("");
+
+      messagesEl.querySelectorAll(".message").forEach(row => {
+        row.addEventListener("click", () => {
+          sampleMessages[row.dataset.index].unread = false;
+          renderMessages();
+        });
+      });
+    }
+
+    document.querySelector("#composeButton").addEventListener("click", () => {
+      dialog.showModal();
+    });
+
+    document.querySelector("#closeButton").addEventListener("click", () => {
+      dialog.close();
+    });
+
+    document.querySelector("#refreshButton").addEventListener("click", renderMessages);
+
+    document.querySelector("#composeForm").addEventListener("submit", event => {
+      event.preventDefault();
+      alert("Demo only: connect this form to a mail server to send real email.");
+      dialog.close();
+      event.target.reset();
+    });
+
+    document.querySelectorAll(".folder").forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelector(".folder.active")?.classList.remove("active");
+        button.classList.add("active");
+      });
+    });
+
+    renderMessages();
+  </script>
+</body>
+</html>
